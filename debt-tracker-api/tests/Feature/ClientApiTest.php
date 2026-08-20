@@ -138,4 +138,85 @@ class ClientApiTest extends TestCase
 
         $this->assertDatabaseMissing('clients', ['id' => $client->id]);
     }
+
+    public function test_it_rejects_an_update_that_settles_more_than_the_enrolled_debt(): void
+    {
+        $client = Client::factory()->create([
+            'enrolled_debt' => 5000,
+            'settled_amount' => 1000,
+        ]);
+
+        $response = $this->putJson("/api/clients/{$client->id}", [
+            'settled_amount' => 99999,
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['settled_amount']);
+
+        // The stored row must be untouched.
+        $this->assertDatabaseHas('clients', [
+            'id' => $client->id,
+            'settled_amount' => 1000,
+        ]);
+    }
+
+    public function test_it_rejects_lowering_the_enrolled_debt_below_what_is_settled(): void
+    {
+        // Only enrolled_debt is submitted, so the check has to fall back to the
+        // settled amount already on the record.
+        $client = Client::factory()->create([
+            'enrolled_debt' => 10000,
+            'settled_amount' => 8000,
+        ]);
+
+        $response = $this->putJson("/api/clients/{$client->id}", [
+            'enrolled_debt' => 5000,
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['settled_amount']);
+    }
+
+    public function test_it_allows_a_partial_update_that_stays_within_the_enrolled_debt(): void
+    {
+        $client = Client::factory()->create([
+            'enrolled_debt' => 10000,
+            'settled_amount' => 2000,
+        ]);
+
+        $this->putJson("/api/clients/{$client->id}", ['settled_amount' => 7500])
+            ->assertOk()
+            ->assertJsonPath('data.settled_amount', 7500);
+    }
+
+    public function test_it_rejects_explicit_nulls_for_optional_fields(): void
+    {
+        // Both columns are NOT NULL with a default, so null has to fail
+        // validation rather than blow up as a query exception.
+        $response = $this->postJson('/api/clients', [
+            'name' => 'Null Probe',
+            'email' => 'null.probe@example.com',
+            'enrolled_debt' => 3000,
+            'settled_amount' => null,
+            'status' => null,
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['settled_amount', 'status']);
+
+        $this->assertDatabaseCount('clients', 0);
+    }
+
+    public function test_it_applies_database_defaults_when_optional_fields_are_omitted(): void
+    {
+        $response = $this->postJson('/api/clients', [
+            'name' => 'Minimal Payload',
+            'email' => 'minimal@example.com',
+            'enrolled_debt' => 3000,
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('data.status', 'enrolled')
+            ->assertJsonPath('data.settled_amount', fn ($value) => (float) $value === 0.0);
+    }
 }

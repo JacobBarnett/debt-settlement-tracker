@@ -92,3 +92,51 @@ func TestProjectInvalidInput(t *testing.T) {
 		})
 	}
 }
+
+func TestProjectClampsToMonthEnd(t *testing.T) {
+	// Starting on the 31st: AddDate would roll September 31 into October 1,
+	// putting two payments in October and none in September.
+	from := time.Date(2026, time.August, 31, 0, 0, 0, 0, time.UTC)
+
+	got, err := Project(Request{EnrolledDebt: 6000, SettledAmount: 0, MonthlyPayment: 1000}, from)
+	if err != nil {
+		t.Fatalf("Project() returned unexpected error: %v", err)
+	}
+
+	want := []string{
+		"2026-09-30", // September has 30 days
+		"2026-10-31",
+		"2026-11-30",
+		"2026-12-31",
+		"2027-01-31",
+		"2027-02-28", // 2027 is not a leap year
+	}
+
+	if len(got.Schedule) != len(want) {
+		t.Fatalf("len(Schedule) = %d, want %d", len(got.Schedule), len(want))
+	}
+
+	for i, wantDate := range want {
+		if got.Schedule[i].Date != wantDate {
+			t.Errorf("month %d date = %q, want %q", i+1, got.Schedule[i].Date, wantDate)
+		}
+	}
+
+	if got.EstimatedPayoffDate != "2027-02-28" {
+		t.Errorf("EstimatedPayoffDate = %q, want %q", got.EstimatedPayoffDate, "2027-02-28")
+	}
+}
+
+func TestProjectClampsIntoLeapFebruary(t *testing.T) {
+	from := time.Date(2028, time.January, 30, 0, 0, 0, 0, time.UTC)
+
+	got, err := Project(Request{EnrolledDebt: 1000, SettledAmount: 0, MonthlyPayment: 1000}, from)
+	if err != nil {
+		t.Fatalf("Project() returned unexpected error: %v", err)
+	}
+
+	// 2028 is a leap year, so the 30th clamps to the 29th rather than the 28th.
+	if want := "2028-02-29"; got.Schedule[0].Date != want {
+		t.Errorf("month 1 date = %q, want %q", got.Schedule[0].Date, want)
+	}
+}

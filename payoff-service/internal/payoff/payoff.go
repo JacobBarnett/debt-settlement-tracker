@@ -96,7 +96,7 @@ func Project(req Request, from time.Time) (Projection, error) {
 		settled = math.Min(settled+req.MonthlyPayment, req.EnrolledDebt)
 		schedule = append(schedule, Month{
 			Month:            m,
-			Date:             from.AddDate(0, m, 0).Format(dateLayout),
+			Date:             addMonths(from, m).Format(dateLayout),
 			ProjectedSettled: round2(settled),
 			RemainingBalance: round2(req.EnrolledDebt - settled),
 		})
@@ -113,4 +113,33 @@ func Project(req Request, from time.Time) (Projection, error) {
 // round2 rounds a dollar amount to whole cents.
 func round2(v float64) float64 {
 	return math.Round(v*100) / 100
+}
+
+// addMonths advances t by n calendar months, clamping to the last day of the
+// target month instead of spilling into the next one.
+//
+// time.Time.AddDate normalises overflow, so "January 31 plus one month" becomes
+// March 3 and February is skipped entirely. A payment schedule has to land on
+// February 28 instead, otherwise a plan started on the 31st shows two payments
+// in one month and none in another.
+func addMonths(t time.Time, n int) time.Time {
+	year, month, day := t.Date()
+
+	// time.Date normalises the month, so month+n rolls into later years cleanly.
+	target := time.Date(year, month+time.Month(n), 1, 0, 0, 0, 0, t.Location())
+
+	if last := daysInMonth(target.Year(), target.Month()); day > last {
+		day = last
+	}
+
+	return time.Date(
+		target.Year(), target.Month(), day,
+		t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), t.Location(),
+	)
+}
+
+// daysInMonth returns how many days the given month has. Day 0 of the following
+// month is the last day of this one.
+func daysInMonth(year int, month time.Month) int {
+	return time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
 }

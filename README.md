@@ -101,7 +101,7 @@ Open http://localhost:5173.
 ## Tests
 
 ```bash
-cd debt-tracker-api && php artisan test   # 10 tests, PHPUnit
+cd debt-tracker-api && php artisan test   # 15 tests, PHPUnit
 cd payoff-service   && go test ./...      # payoff + httpapi packages
 ```
 
@@ -179,9 +179,10 @@ separate hosting (Render and Railway both have free tiers supporting each).
   Request validation, API Resource responses, `apiResource` routes, CORS scoped
   to the frontend origin, factory and seeder
 - Go: standard-library HTTP service, calculation logic split into its own
-  package, injected clock for deterministic tests, request size limits, strict
-  JSON decoding, sentinel-error handling, and CORS with preflight support
-- 10 PHPUnit tests and 7 Go tests
+  package, injected clock for deterministic tests, calendar-aware month
+  arithmetic that clamps to month ends, request size limits, strict JSON
+  decoding, sentinel-error handling, and CORS with preflight support
+- 15 PHPUnit tests and 9 Go tests
 
 ## What I would add next
 

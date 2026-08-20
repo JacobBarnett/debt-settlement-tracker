@@ -5,6 +5,7 @@ namespace App\Http\Requests;
 use App\Models\Client;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UpdateClientRequest extends FormRequest
 {
@@ -32,12 +33,46 @@ class UpdateClientRequest extends FormRequest
                 Rule::unique(Client::class)->ignore($this->route('client')),
             ],
             'enrolled_debt' => ['sometimes', 'required', 'numeric', 'min:0.01', 'max:99999999.99'],
-            'settled_amount' => ['sometimes', 'nullable', 'numeric', 'min:0'],
+            'settled_amount' => ['sometimes', 'numeric', 'min:0'],
             'status' => [
                 'sometimes',
                 'required',
                 Rule::in(['enrolled', 'negotiating', 'settled', 'cancelled']),
             ],
         ];
+    }
+
+    /**
+     * Enforce the settled/enrolled relationship across a partial update.
+     *
+     * A plain 'lte:enrolled_debt' rule is not enough here: either field may be
+     * absent from the payload, in which case the comparison has to fall back to
+     * the value already stored on the client.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $client = $this->route('client');
+
+            if (! $client instanceof Client) {
+                return;
+            }
+
+            // If either field already failed its own rules, the comparison
+            // below would only add a confusing second error.
+            if ($validator->errors()->hasAny(['enrolled_debt', 'settled_amount'])) {
+                return;
+            }
+
+            $enrolledDebt = (float) $this->input('enrolled_debt', $client->enrolled_debt);
+            $settledAmount = (float) $this->input('settled_amount', $client->settled_amount);
+
+            if ($settledAmount > $enrolledDebt) {
+                $validator->errors()->add(
+                    'settled_amount',
+                    'The settled amount cannot exceed the enrolled debt.',
+                );
+            }
+        });
     }
 }

@@ -26,15 +26,18 @@ class StoreClientRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique(Client::class)],
             'enrolled_debt' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
+            // 'sometimes' rather than 'nullable': both columns are NOT NULL with a
+            // database default, so an omitted field is fine but an explicit null
+            // has to be rejected here instead of failing at insert time.
             'settled_amount' => [
-                'nullable',
+                'sometimes',
                 'numeric',
                 'min:0',
                 // A client cannot have settled more than they enrolled.
                 'lte:enrolled_debt',
             ],
             'status' => [
-                'nullable',
+                'sometimes',
                 Rule::in(['enrolled', 'negotiating', 'settled', 'cancelled']),
             ],
         ];

@@ -26,11 +26,23 @@ export function PayoffChart({ schedule, enrolledDebt }: PayoffChartProps) {
   const y = (value: number) =>
     PADDING.top + plotHeight - (value / enrolledDebt) * plotHeight;
 
-  const line = schedule
-    .map((point, i) => `${i === 0 ? "M" : "L"} ${x(i)} ${y(point.projected_settled)}`)
+  const points: Array<[number, number]> = schedule.map((point, i) => [
+    x(i),
+    y(point.projected_settled),
+  ]);
+
+  // A single-month plan is one point, and a lone moveto draws nothing at all.
+  // Extend it into a flat segment so the chart still shows the payoff.
+  if (points.length === 1) {
+    points.push([PADDING.left + plotWidth, points[0][1]]);
+  }
+
+  const line = points
+    .map(([px, py], i) => `${i === 0 ? "M" : "L"} ${px} ${py}`)
     .join(" ");
 
-  const area = `${line} L ${x(schedule.length - 1)} ${PADDING.top + plotHeight} L ${x(0)} ${PADDING.top + plotHeight} Z`;
+  const baseline = PADDING.top + plotHeight;
+  const area = `${line} L ${points[points.length - 1][0]} ${baseline} L ${points[0][0]} ${baseline} Z`;
 
   return (
     <svg

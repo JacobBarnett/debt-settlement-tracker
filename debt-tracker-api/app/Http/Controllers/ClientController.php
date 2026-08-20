@@ -17,7 +17,7 @@ class ClientController extends Controller
      */
     public function index(): AnonymousResourceCollection
     {
-        $clients = Client::query()->latest()->get();
+        $clients = Client::query()->latest('id')->get();
 
         return ClientResource::collection($clients);
     }
@@ -31,6 +31,11 @@ class ClientController extends Controller
     public function store(StoreClientRequest $request): JsonResponse
     {
         $client = Client::create($request->validated());
+
+        // Omitted columns are filled by database defaults, which the in-memory
+        // model does not know about. Reload so the response reports the stored
+        // status and settled amount rather than nulls.
+        $client->refresh();
 
         return ClientResource::make($client)
             ->response()

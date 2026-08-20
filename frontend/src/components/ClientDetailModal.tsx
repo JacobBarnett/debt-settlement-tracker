@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Client, Payoff } from "../types";
 import { projectPayoff } from "../api/payoff";
 import {
@@ -26,20 +26,28 @@ export function ClientDetailModal({ client, onClose }: ClientDetailModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Identifies the most recent projection request so that a slow earlier
+  // response cannot overwrite a newer one when Recalculate is clicked twice.
+  const latestRequest = useRef(0);
+
   const loadProjection = useCallback(
     async (payment: number) => {
+      const requestId = ++latestRequest.current;
       setLoading(true);
       setError(null);
 
       try {
-        setPayoff(
-          await projectPayoff({
-            enrolled_debt: client.enrolled_debt,
-            settled_amount: client.settled_amount,
-            monthly_payment: payment,
-          }),
-        );
+        const projection = await projectPayoff({
+          enrolled_debt: client.enrolled_debt,
+          settled_amount: client.settled_amount,
+          monthly_payment: payment,
+        });
+
+        if (requestId !== latestRequest.current) return;
+        setPayoff(projection);
       } catch (err) {
+        if (requestId !== latestRequest.current) return;
+
         setPayoff(null);
         setError(
           err instanceof Error
@@ -47,7 +55,7 @@ export function ClientDetailModal({ client, onClose }: ClientDetailModalProps) {
             : "Could not reach the payoff service.",
         );
       } finally {
-        setLoading(false);
+        if (requestId === latestRequest.current) setLoading(false);
       }
     },
     [client.enrolled_debt, client.settled_amount],

@@ -168,6 +168,15 @@ VITE_PAYOFF_API_URL=https://your-go-host
 Hosting the `dist/` output is enough to demo the UI; the PHP and Go services need
 separate hosting (Render and Railway both have free tiers supporting each).
 
+### Demo build
+
+`npm run build -- --mode demo` produces the build hosted on
+[jacobbarnett.dev/debt-tracker](https://jacobbarnett.dev/debt-tracker/). It uses
+the same React code, but because no PHP service is hosted, client records are
+seeded sample data kept in the browser's localStorage. Payoff projections still
+call the real Go code, deployed as a serverless function on the same origin. The
+UI states this plainly in a banner so nothing about the demo is misleading.
+
 ## What is implemented
 
 - Client table with name, enrolled debt, settled amount, progress bar, and status badge
@@ -194,5 +203,5 @@ separate hosting (Render and Railway both have free tiers supporting each).
 - **More test coverage** — Go handler table tests across more input shapes,
   Laravel tests for pagination and filtering, and frontend component tests
 - **Pagination and filtering** on `GET /api/clients` once the table grows
-- **A demo/offline mode** for the static build so the portfolio deployment can
-  render sample data without the backends running
+- **Hosting the Laravel API** so the portfolio demo talks to the real PHP
+  service instead of the browser-side sample data it uses today

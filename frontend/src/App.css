@@ -347,6 +347,13 @@
   border: 1px solid #f3c9c6;
 }
 
+.alert--info {
+  background: var(--accent-soft);
+  color: #1a3f8f;
+  border: 1px solid #c5d8fb;
+  line-height: 1.5;
+}
+
 .empty {
   padding: 2.5rem 1rem;
   text-align: center;

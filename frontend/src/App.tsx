@@ -8,6 +8,7 @@ import {
   fetchClients,
 } from "./api/clients";
 import { ValidationError, type Client, type NewClient } from "./types";
+import { DEMO_MODE } from "./api/config";
 import { formatCurrency } from "./format";
 import "./App.css";
 
@@ -119,6 +120,17 @@ export default function App() {
       </header>
 
       <main className="page__body">
+        {DEMO_MODE && (
+          <div className="alert alert--info">
+            <span>
+              <strong>Demo build.</strong> Client records are sample data kept in
+              your browser, since the PHP/Laravel API runs locally rather than
+              hosted. The payoff projections below are calculated by the real Go
+              service, deployed here as a serverless function.
+            </span>
+          </div>
+        )}
+
         {error && (
           <div className="alert alert--error">
             <span>{error}</span>

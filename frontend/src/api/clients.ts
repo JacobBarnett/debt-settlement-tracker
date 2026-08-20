@@ -1,4 +1,9 @@
-import { CLIENTS_API_URL } from "./config";
+import { CLIENTS_API_URL, DEMO_MODE } from "./config";
+import {
+  demoCreateClient,
+  demoDeleteClient,
+  demoFetchClients,
+} from "./demoStore";
 import { ValidationError, type Client, type NewClient } from "../types";
 
 /** Laravel API Resources wrap both collections and single records in `data`. */
@@ -31,6 +36,8 @@ const jsonHeaders = {
 };
 
 export async function fetchClients(): Promise<Client[]> {
+  if (DEMO_MODE) return demoFetchClients();
+
   const response = await fetch(`${CLIENTS_API_URL}/clients`, {
     headers: { Accept: "application/json" },
   });
@@ -39,6 +46,8 @@ export async function fetchClients(): Promise<Client[]> {
 }
 
 export async function createClient(payload: NewClient): Promise<Client> {
+  if (DEMO_MODE) return demoCreateClient(payload);
+
   const response = await fetch(`${CLIENTS_API_URL}/clients`, {
     method: "POST",
     headers: jsonHeaders,
@@ -62,6 +71,8 @@ export async function updateClient(
 }
 
 export async function deleteClient(id: number): Promise<void> {
+  if (DEMO_MODE) return demoDeleteClient(id);
+
   const response = await fetch(`${CLIENTS_API_URL}/clients/${id}`, {
     method: "DELETE",
     headers: { Accept: "application/json" },

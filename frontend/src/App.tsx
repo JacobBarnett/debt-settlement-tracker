@@ -165,8 +165,12 @@ export default function App() {
       </main>
 
       <footer className="page__footer">
-        <span>Clients API: PHP 8.3 · Laravel</span>
-        <span>Payoff projections: Go</span>
+        <span>
+          Clients API: PHP 8.3 · Laravel{DEMO_MODE ? " (runs locally)" : ""}
+        </span>
+        <span>
+          Payoff projections: Go{DEMO_MODE ? " (live serverless function)" : ""}
+        </span>
         <span>UI: React · TypeScript · Vite</span>
       </footer>
 
